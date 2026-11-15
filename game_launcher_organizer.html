@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameVault - Игровой Лаунчер & Организатор</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            accent: '#10b981'
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            sidebar: '#1e293b',
+                            card: '#1e293b',
+                            hover: '#334155',
+                            border: '#334155'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Кастомный скроллбар */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        
+        .game-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .game-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Главный контейнер приложения -->
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- Боковая панель (Sidebar) -->
+        <aside class="w-64 bg-dark-sidebar border-r border-dark-border flex flex-col justify-between hidden md:flex flex-shrink-0">
+            <div>
+                <!-- Логотип -->
+                <div class="p-5 flex items-center space-x-3 border-b border-dark-border">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid font-bold fa-gamepad text-xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight tracking-wide text-white">GameVault</h1>
+                        <p class="text-xs text-slate-400">Игровой лаунчер</p>
+                    </div>
+                </div>
+
+                <!-- Навигация -->
+                <nav class="p-4 space-y-1">
+                    <button onclick="filterCategory('all')" id="nav-all" class="nav-link w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-hover hover:text-white transition font-medium active-nav">
+                        <i class="fa-solid fa-border-all w-5 text-center text-brand-500"></i>
+                        <span>Все игры</span>
+                        <span id="count-all" class="ml-auto bg-dark-hover text-xs px-2 py-0.5 rounded-full text-slate-400">0</span>
+                    </button>
+
+                    <button onclick="filterCategory('favorites')" id="nav-favorites" class="nav-link w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-hover hover:text-white transition font-medium">
+                        <i class="fa-solid fa-heart w-5 text-center text-rose-500"></i>
+                        <span>Избранное</span>
+                        <span id="count-favorites" class="ml-auto bg-dark-hover text-xs px-2 py-0.5 rounded-full text-slate-400">0</span>
+                    </button>
+
+                    <button onclick="filterCategory('recent')" id="nav-recent" class="nav-link w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-hover hover:text-white transition font-medium">
+                        <i class="fa-solid fa-clock-rotate-left w-5 text-center text-amber-500"></i>
+                        <span>Недавние</span>
+                    </button>
+
+                    <div class="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Категории</div>
+
+                    <button onclick="filterCategory('built-in')" id="nav-built-in" class="nav-link w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-hover hover:text-white transition font-medium">
+                        <i class="fa-solid fa-cube w-5 text-center text-emerald-400"></i>
+                        <span>Встроенные</span>
+                    </button>
+
+                    <button onclick="filterCategory('custom')" id="nav-custom" class="nav-link w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-dark-hover hover:text-white transition font-medium">
+                        <i class="fa-solid fa-user-gear w-5 text-center text-cyan-400"></i>
+                        <span>Пользовательские</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Кнопка Добавления Игры -->
+            <div class="p-4 border-t border-dark-border">
+                <button onclick="openAddModal()" class="w-full bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-brand-600/30 transition duration-200">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Добавить игру</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Основной контент -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden bg-dark-bg">
+
+            <!-- Шапка (Header) -->
+            <header class="h-20 border-b border-dark-border px-6 flex items-center justify-between bg-dark-sidebar/40 backdrop-blur-md">
+                
+                <!-- Поиск -->
+                <div class="relative w-full max-w-md">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Поиск игр по названию..." 
+                        class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-dark-border text-white placeholder-slate-400 focus:outline-none focus:border-brand-500 transition">
+                </div>
+
+                <!-- Быстрые действия для мобильных & Статистика -->
+                <div class="flex items-center space-x-4">
+                    <button onclick="openAddModal()" class="md:hidden bg-brand-600 hover:bg-brand-500 text-white p-2.5 rounded-xl flex items-center justify-center">
+                        <i class="fa-solid fa-plus text-lg"></i>
+                    </button>
+                    <div class="hidden sm:flex items-center space-x-2 bg-slate-800/80 px-4 py-2 rounded-xl border border-dark-border">
+                        <i class="fa-solid fa-gamepad text-brand-500"></i>
+                        <span class="text-sm font-medium text-slate-300">Всего запусков: <strong id="total-launches" class="text-white font-bold">0</strong></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Мобильная навигация (Табы сверху на мобилках) -->
+            <div class="flex md:hidden bg-dark-sidebar border-b border-dark-border p-2 overflow-x-auto space-x-2">
+                <button onclick="filterCategory('all')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-600 text-white whitespace-nowrap">Все</button>
+                <button onclick="filterCategory('favorites')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 whitespace-nowrap">Избранное</button>
+                <button onclick="filterCategory('recent')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 whitespace-nowrap">Недавние</button>
+                <button onclick="filterCategory('built-in')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 whitespace-nowrap">Встроенные</button>
+                <button onclick="filterCategory('custom')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 whitespace-nowrap">Свои игры</button>
+            </div>
+
+            <!-- Игровая сетка (Библиотека) -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <!-- Баннер приветствия -->
+                <div class="relative rounded-2xl p-6 mb-8 overflow-hidden bg-gradient-to-r from-indigo-900/60 via-purple-900/40 to-slate-900 border border-indigo-500/30">
+                    <div class="relative z-10 max-w-2xl">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-500/20 text-brand-400 border border-brand-500/30">HTML5 Game Hub</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-2 mb-2">Твой личный игровой центр</h2>
+                        <p class="text-slate-300 text-sm sm:text-base mb-4">Играй в встроенные классические ретро-игры или загружай собственные HTML/JS игры прямо в лаунчер!</p>
+                        <button onclick="openAddModal()" class="bg-white text-slate-900 hover:bg-slate-100 font-bold px-5 py-2.5 rounded-xl shadow-lg transition text-sm flex items-center space-x-2">
+                            <i class="fa-solid fa-file-code text-brand-600"></i>
+                            <span>Добавить свою игру</span>
+                        </button>
+                    </div>
+                    <div class="absolute -right-6 -bottom-6 opacity-20 text-indigo-400 pointer-events-none">
+                        <i class="fa-solid fa-dice text-9xl"></i>
+                    </div>
+                </div>
+
+                <!-- Заголовок раздела -->
+                <div class="flex items-center justify-between mb-6">
+                    <h3 id="section-title" class="text-xl font-bold text-white flex items-center space-x-2">
+                        <span>Все игры</span>
+                    </h3>
+                    <span id="games-count" class="text-sm text-slate-400">Показано: 0</span>
+                </div>
+
+                <!-- Карточки игр -->
+                <div id="games-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Заполняется динамически JS -->
+                </div>
+
+                <!-- Заглушка, если ничего не найдено -->
+                <div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
+                    <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-500 text-3xl">
+                        <i class="fa-solid fa-ghost"></i>
+                    </div>
+                    <h4 class="text-lg font-bold text-white mb-1">Игры не найдены</h4>
+                    <p class="text-slate-400 text-sm max-w-md">Попробуйте изменить поисковый запрос или добавьте новую HTML-игру в библиотеку.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Модальное окно: Игровой Плеер (FULLSCREEN MODAL) -->
+    <div id="player-modal" class="fixed inset-0 z-50 bg-black/95 flex flex-col hidden transition-opacity duration-300">
+        <!-- Шапка плеера -->
+        <div class="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center space-x-3">
+                <span id="player-game-icon" class="text-xl text-brand-500"><i class="fa-solid fa-gamepad"></i></span>
+                <div>
+                    <h4 id="player-game-title" class="font-bold text-white text-base leading-none">Название игры</h4>
+                    <span id="player-game-type" class="text-xs text-slate-400">HTML5 Canvas</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition" title="Полный экран">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+                <button onclick="restartCurrentGame()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition" title="Перезапустить">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button onclick="closePlayerModal()" class="bg-rose-600 hover:bg-rose-500 text-white font-medium px-3 py-1.5 rounded-lg text-sm transition ml-2 flex items-center space-x-1">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Закрыть</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Контейнер игры -->
+        <div id="game-container" class="flex-1 w-full h-full relative flex items-center justify-center bg-black overflow-hidden">
+            <!-- Сда встраивается iframe или canvas -->
+        </div>
+    </div>
+
+    <!-- Модальное окно: Добавление игры -->
+    <div id="add-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-dark-card border border-dark-border rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-dark-border flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-plus-circle text-brand-500"></i>
+                    <span>Добавить игру в библиотеку</span>
+                </h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-4">
+                <!-- Табы выбора метода добавления -->
+                <div class="flex rounded-xl bg-slate-900 p-1 border border-dark-border">
+                    <button onclick="switchAddTab('file')" id="tab-file-btn" class="flex-1 py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white transition">HTML Файл</button>
+                    <button onclick="switchAddTab('code')" id="tab-code-btn" class="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">Вставить Код</button>
+                    <button onclick="switchAddTab('url')" id="tab-url-btn" class="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">URL Ссылка</button>
+                </div>
+
+                <!-- Основная форма -->
+                <form id="add-game-form" onsubmit="handleSaveGame(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Название игры *</label>
+                        <input type="text" id="add-title" required placeholder="Например: Super Mario Web" class="w-full bg-slate-900 border border-dark-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Жанр / Категория</label>
+                            <input type="text" id="add-genre" placeholder="Аркада, Экшен..." class="w-full bg-slate-900 border border-dark-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Цвет Обложки</label>
+                            <select id="add-color" class="w-full bg-slate-900 border border-dark-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-500">
+                                <option value="from-indigo-600 to-blue-700">Индиго</option>
+                                <option value="from-purple-600 to-pink-700">Пурпурный</option>
+                                <option value="from-emerald-600 to-teal-700">Изумрудный</option>
+                                <option value="from-amber-600 to-orange-700">Янтарный</option>
+                                <option value="from-rose-600 to-red-700">Красный</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Поле 1: Файл -->
+                    <div id="add-type-file" class="space-y-1">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Выберите файл .html с игрой *</label>
+                        <input type="file" id="add-file" accept=".html,.htm" class="w-full bg-slate-900 border border-dark-border rounded-xl px-4 py-2 text-slate-300 text-sm file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500">
+                    </div>
+
+                    <!-- Поле 2: Вставка Кода -->
+                    <div id="add-type-code" class="hidden space-y-1">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Исходный HTML / JS код *</label>
+                        <textarea id="add-code" rows="5" placeholder="<!DOCTYPE html><html>...<script>...</script></html>" class="w-full bg-slate-900 border border-dark-border rounded-xl p-3 text-xs font-mono text-slate-300 focus:outline-none focus:border-brand-500"></textarea>
+                    </div>
+
+                    <!-- Поле 3: URL -->
+                    <div id="add-type-url" class="hidden space-y-1">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">URL адрес веб-игры *</label>
+                        <input type="url" id="add-url" placeholder="https://example.com/game.html" class="w-full bg-slate-900 border border-dark-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Краткое описание</label>
+                        <textarea id="add-desc" rows="2" placeholder="О чем эта игра..." class="w-full bg-slate-900 border border-dark-border rounded-xl p-3 text-sm text-white focus:outline-none focus:border-brand-500"></textarea>
+                    </div>
+
+                    <div class="pt-4 flex justify-end space-x-3">
+                        <button type="button" onclick="closeAddModal()" class="px-5 py-2.5 rounded-xl border border-dark-border text-slate-300 hover:bg-dark-hover font-medium text-sm transition">Отмена</button>
+                        <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition shadow-lg shadow-brand-600/30">Сохранить Игру</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Текстовое уведомление (Toast) -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-slate-800 border border-brand-500 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transition transform translate-y-20 opacity-0 pointer-events-none">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-brand-500 text-lg"></i>
+        <span id="toast-message" class="text-sm font-medium">Действие выполнено успешно!</span>
+    </div>
+
+    <!-- СКРИПТЫ ПРИЛОЖЕНИЯ И ИГР -->
+    <script>
+        // ==========================================
+        // 1. ВСТРОЕННЫЕ ИГРЫ (SNAKE, 2048, TIC-TAC-TOE, PONG)
+        // ==========================================
+
+        const BUILT_IN_GAMES = [
+            {
+                id: 'built-in-snake',
+                title: 'Змейка Classic',
+                genre: 'Аркада',
+                desc: 'Классическая змейка! Собирай еду, расти и избегай столкновений со стенами и хвостом.',
+                gradient: 'from-emerald-600 to-teal-800',
+                icon: 'fa-solid fa-staff-snake',
+                isBuiltIn: true,
+                code: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { background: #0f172a; color: white; font-family: sans-serif; display: flex; flex-direction: column; items-center; justify-content: center; height: 100vh; margin: 0; }
+                            canvas { border: 3px solid #334155; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+                            .info { margin-bottom: 15px; font-size: 20px; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="info">Счет: <span id="score">0</span></div>
+                        <canvas id="gc" width="400" height="400"></canvas>
+                        <p style="color: #94a3b8; font-size: 14px; margin-top: 15px;">Управление: Стрелочки на клавиатуре</p>
+                        <script>
+                            const canvas = document.getElementById('gc');
+                            const ctx = canvas.getContext('2d');
+                            let px = 10, py = 10;
+                            let gs = 20, tc = 20;
+                            let ax = 15, ay = 15;
+                            let xv = 0, yv = 0;
+                            let trail = [];
+                            let tail = 5;
+                            let score = 0;
+
+                            window.onload = () => {
+                                document.addEventListener('keydown', keyPush);
+                                setInterval(game, 1000/15);
+                            };
+
+                            function game() {
+                                px += xv;
+                                py += yv;
+                                if(px < 0) px = tc-1;
+                                if(px > tc-1) px = 0;
+                                if(py < 0) py = tc-1;
+                                if(py > tc-1) py = 0;
+
+                                ctx.fillStyle = "#1e293b";
+                                ctx.fillRect(0,0,canvas.width,canvas.height);
+
+                                ctx.fillStyle = "#10b981";
+                                for(let i=0; i<trail.length; i++) {
+                                    ctx.fillRect(trail[i].x*gs, trail[i].y*gs, gs-2, gs-2);
+                                    if(trail[i].x === px && trail[i].y === py && (xv !== 0 || yv !== 0)) {
+                                        tail = 5;
+                                        score = 0;
+                                        document.getElementById('score').innerText = score;
+                                    }
+                                }
+                                trail.push({x:px, y:py});
+                                while(trail.length > tail) trail.shift();
+
+                                if(ax === px && ay === py) {
+                                    tail++;
+                                    score += 10;
+                                    document.getElementById('score').innerText = score;
+                                    ax = Math.floor(Math.random()*tc);
+                                    ay = Math.floor(Math.random()*tc);
+                                }
+                                ctx.fillStyle = "#f43f5e";
+                                ctx.fillRect(ax*gs, ay*gs, gs-2, gs-2);
+                            }
+
+                            function keyPush(evt) {
+                                switch(evt.keyCode) {
+                                    case 37: if(xv!==1){xv=-1;yv=0;} break;
+                                    case 38: if(yv!==1){xv=0;yv=-1;} break;
+                                    case 39: if(xv!==-1){xv=1;yv=0;} break;
+                                    case 40: if(yv!==-1){xv=0;yv=1;} break;
+                                }
+                            }
+                        <\/script>
+                    </body>
+                    </html>
+                `
+            },
+            {
+                id: 'built-in-2048',
+                title: 'Головоломка 2048',
+                genre: 'Логика',
+                desc: 'Соединяй одинаковые числа, чтобы дойти до плитки 2048!',
+                gradient: 'from-amber-600 to-orange-700',
+                icon: 'fa-solid fa-cubes',
+                isBuiltIn: true,
+                code: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { background: #0f172a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                            .grid { display: grid; grid-template-columns: repeat(4, 80px); grid-gap: 10px; background: #334155; padding: 10px; border-radius: 12px; }
+                            .cell { width: 80px; height: 80px; background: #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; }
+                            .header { margin-bottom: 20px; font-size: 24px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">Счет: <span id="score">0</span></div>
+                        <div class="grid" id="grid"></div>
+                        <p style="color: #94a3b8; font-size: 14px; margin-top: 15px;">Используйте стрелочки для передвижения</p>
+                        <script>
+                            let board = Array(16).fill(0);
+                            let score = 0;
+
+                            function init() {
+                                spawn(); spawn(); draw();
+                                document.addEventListener('keydown', handleKey);
+                            }
+
+                            function spawn() {
+                                let empty = board.map((v, i) => v === 0 ? i : null).filter(v => v !== null);
+                                if(empty.length) {
+                                    board[empty[Math.floor(Math.random() * empty.length)]] = Math.random() < 0.9 ? 2 : 4;
+                                }
+                            }
+
+                            function draw() {
+                                const grid = document.getElementById('grid');
+                                grid.innerHTML = '';
+                                board.forEach(val => {
+                                    let cell = document.createElement('div');
+                                    cell.className = 'cell';
+                                    cell.innerText = val ? val : '';
+                                    if(val) cell.style.background = getColor(val);
+                                    grid.appendChild(cell);
+                                });
+                                document.getElementById('score').innerText = score;
+                            }
+
+                            function getColor(val) {
+                                const colors = { 2: '#64748b', 4: '#475569', 8: '#f59e0b', 16: '#d97706', 32: '#ea580c', 64: '#dc2626', 128: '#eab308', 256: '#84cc16', 512: '#06b6d4', 1024: '#8b5cf6', 2048: '#ec4899' };
+                                return colors[val] || '#6366f1';
+                            }
+
+                            function slide(row) {
+                                let arr = row.filter(val => val);
+                                for(let i=0; i<arr.length-1; i++) {
+                                    if(arr[i] === arr[i+1]) {
+                                        arr[i] *= 2; score += arr[i];
+                                        arr[i+1] = 0;
+                                    }
+                                }
+                                arr = arr.filter(val => val);
+                                while(arr.length < 4) arr.push(0);
+                                return arr;
+                            }
+
+                            function handleKey(e) {
+                                let oldBoard = [...board];
+                                if(e.keyCode === 37) { // Left
+                                    for(let i=0; i<4; i++) {
+                                        let row = [board[i*4], board[i*4+1], board[i*4+2], board[i*4+3]];
+                                        row = slide(row);
+                                        for(let j=0; j<4; j++) board[i*4+j] = row[j];
+                                    }
+                                } else if(e.keyCode === 39) { // Right
+                                    for(let i=0; i<4; i++) {
+                                        let row = [board[i*4], board[i*4+1], board[i*4+2], board[i*4+3]].reverse();
+                                        row = slide(row).reverse();
+                                        for(let j=0; j<4; j++) board[i*4+j] = row[j];
+                                    }
+                                } else if(e.keyCode === 38) { // Up
+                                    for(let i=0; i<4; i++) {
+                                        let row = [board[i], board[i+4], board[i+8], board[i+12]];
+                                        row = slide(row);
+                                        for(let j=0; j<4; j++) board[i+j*4] = row[j];
+                                    }
+                                } else if(e.keyCode === 40) { // Down
+                                    for(let i=0; i<4; i++) {
+                                        let row = [board[i], board[i+4], board[i+8], board[i+12]].reverse();
+                                        row = slide(row).reverse();
+                                        for(let j=0; j<4; j++) board[i+j*4] = row[j];
+                                    }
+                                }
+                                if(JSON.stringify(oldBoard) !== JSON.stringify(board)) {
+                                    spawn(); draw();
+                                }
+                            }
+                            init();
+                        <\/script>
+                    </body>
+                    </html>
+                `
+            },
+            {
+                id: 'built-in-ttt',
+                title: 'Крестики-Нолики',
+                genre: 'Настольная',
+                desc: 'Играй против друга на одном экране в классические Крестики-Нолики!',
+                gradient: 'from-rose-600 to-red-800',
+                icon: 'fa-solid fa-xmark',
+                isBuiltIn: true,
+                code: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { background: #0f172a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                            .board { display: grid; grid-template-columns: repeat(3, 100px); grid-gap: 10px; }
+                            .cell { width: 100px; height: 100px; background: #1e293b; border: 2px solid #334155; border-radius: 12px; font-size: 48px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #6366f1; transition: 0.2s; }
+                            .cell:hover { background: #334155; }
+                            .status { font-size: 22px; margin-bottom: 20px; font-weight: bold; }
+                            button { margin-top: 20px; padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="status" id="status">Ход: X</div>
+                        <div class="board" id="board"></div>
+                        <button onclick="resetGame()">Начать заново</button>
+
+                        <script>
+                            let turn = 'X';
+                            let cells = Array(9).fill('');
+                            const status = document.getElementById('status');
+
+                            function draw() {
+                                const b = document.getElementById('board');
+                                b.innerHTML = '';
+                                cells.forEach((val, i) => {
+                                    let cell = document.createElement('div');
+                                    cell.className = 'cell';
+                                    cell.innerText = val;
+                                    cell.style.color = val === 'X' ? '#f43f5e' : '#10b981';
+                                    cell.onclick = () => clickCell(i);
+                                    b.appendChild(cell);
+                                });
+                            }
+
+                            function clickCell(i) {
+                                if(cells[i] || checkWin()) return;
+                                cells[i] = turn;
+                                if(checkWin()) {
+                                    status.innerText = 'Победил ' + turn + '! 🎉';
+                                } else if(cells.every(c => c)) {
+                                    status.innerText = 'Ничья!';
+                                } else {
+                                    turn = turn === 'X' ? 'O' : 'X';
+                                    status.innerText = 'Ход: ' + turn;
+                                }
+                                draw();
+                            }
+
+                            function checkWin() {
+                                const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+                                return wins.some(w => cells[w[0]] && cells[w[0]] === cells[w[1]] && cells[w[0]] === cells[w[2]]);
+                            }
+
+                            function resetGame() {
+                                cells = Array(9).fill('');
+                                turn = 'X';
+                                status.innerText = 'Ход: X';
+                                draw();
+                            }
+                            draw();
+                        <\/script>
+                    </body>
+                    </html>
+                `
+            },
+            {
+                id: 'built-in-pong',
+                title: 'Retro Pong',
+                genre: 'Аркада / Спорт',
+                desc: 'Легендарный Понг. Отбивай мяч ракеткой и набери максимум очков!',
+                gradient: 'from-indigo-600 to-purple-800',
+                icon: 'fa-solid fa-table-tennis-paddle-ball',
+                isBuiltIn: true,
+                code: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { background: #0f172a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                            canvas { background: #1e293b; border: 3px solid #334155; border-radius: 12px; }
+                            .info { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="info">Счет: <span id="pScore">0</span> | ИИ: <span id="aiScore">0</span></div>
+                        <canvas id="pong" width="600" height="350"></canvas>
+                        <p style="color: #94a3b8; font-size: 14px; margin-top: 15px;">Управление: Двигайте мышью вверх и вниз</p>
+
+                        <script>
+                            const canvas = document.getElementById('pong');
+                            const ctx = canvas.getContext('2d');
+
+                            let player = { x: 10, y: 125, w: 10, h: 100, score: 0 };
+                            let ai = { x: 580, y: 125, w: 10, h: 100, score: 0 };
+                            let ball = { x: 300, y: 175, r: 8, speed: 5, vx: 5, vy: 5 };
+
+                            canvas.addEventListener('mousemove', e => {
+                                let rect = canvas.getBoundingClientRect();
+                                player.y = e.clientY - rect.top - player.h/2;
+                            });
+
+                            function update() {
+                                ball.x += ball.vx;
+                                ball.y += ball.vy;
+
+                                if(ball.y - ball.r < 0 || ball.y + ball.r > canvas.height) ball.vy *= -1;
+
+                                // AI
+                                ai.y += (ball.y - (ai.y + ai.h/2)) * 0.08;
+
+                                // Collisions
+                                let paddle = (ball.x < canvas.width/2) ? player : ai;
+                                if(collision(ball, paddle)) {
+                                    ball.vx *= -1.1;
+                                }
+
+                                // Score
+                                if(ball.x < 0) { ai.score++; reset(); }
+                                else if(ball.x > canvas.width) { player.score++; reset(); }
+
+                                document.getElementById('pScore').innerText = player.score;
+                                document.getElementById('aiScore').innerText = ai.score;
+                            }
+
+                            function collision(b, p) {
+                                return b.x - b.r < p.x + p.w && b.x + b.r > p.x && b.y > p.y && b.y < p.y + p.h;
+                            }
+
+                            function reset() {
+                                ball.x = canvas.width/2;
+                                ball.y = canvas.height/2;
+                                ball.speed = 5;
+                                ball.vx = -ball.vx;
+                            }
+
+                            function render() {
+                                ctx.fillStyle = '#1e293b';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                                ctx.fillStyle = '#6366f1';
+                                ctx.fillRect(player.x, player.y, player.w, player.h);
+
+                                ctx.fillStyle = '#f43f5e';
+                                ctx.fillRect(ai.x, ai.y, ai.w, ai.h);
+
+                                ctx.fillStyle = '#ffffff';
+                                ctx.beginPath();
+                                ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+                                ctx.fill();
+                            }
+
+                            function loop() {
+                                update();
+                                render();
+                                requestAnimationFrame(loop);
+                            }
+                            loop();
+                        <\/script>
+                    </body>
+                    </html>
+                `
+            }
+        ];
+
+        // ==========================================
+        // 2. СОСТОЯНИЕ ПРИЛОЖЕНИЯ И ХРАНИЛИЩЕ
+        // ==========================================
+
+        let gamesList = [];
+        let favorites = new Set();
+        let stats = { totalLaunches: 0, lastPlayed: {} };
+        let activeCategory = 'all';
+        let searchQuery = '';
+        let currentPlayingGameId = null;
+        let currentAddTab = 'file';
+
+        // Инициализация при загрузке страницы
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromStorage();
+            renderGames();
+            updateStatsUI();
+        });
+
+        // Загрузка из localStorage
+        function loadFromStorage() {
+            try {
+                const storedGames = localStorage.getItem('gv_custom_games');
+                const customGames = storedGames ? JSON.parse(storedGames) : [];
+                gamesList = [...BUILT_IN_GAMES, ...customGames];
+
+                const storedFavs = localStorage.getItem('gv_favorites');
+                if(storedFavs) favorites = new Set(JSON.parse(storedFavs));
+
+                const storedStats = localStorage.getItem('gv_stats');
+                if(storedStats) stats = JSON.parse(storedStats);
+            } catch(e) {
+                console.error("Ошибка загрузки данных из localStorage", e);
+                gamesList = [...BUILT_IN_GAMES];
+            }
+        }
+
+        // Сохранение кастомных игр
+        function saveCustomGamesToStorage() {
+            const customGames = gamesList.filter(g => !g.isBuiltIn);
+            localStorage.setItem('gv_custom_games', JSON.stringify(customGames));
+        }
+
+        function saveFavoritesToStorage() {
+            localStorage.setItem('gv_favorites', JSON.stringify(Array.from(favorites)));
+        }
+
+        function saveStatsToStorage() {
+            localStorage.setItem('gv_stats', JSON.stringify(stats));
+        }
+
+        // ==========================================
+        // 3. ОТРИСОВКА ИГР И ФИЛЬТРАЦИЯ
+        // ==========================================
+
+        function renderGames() {
+            const grid = document.getElementById('games-grid');
+            const emptyState = document.getElementById('empty-state');
+            grid.innerHTML = '';
+
+            // Фильтрация
+            let filtered = gamesList.filter(game => {
+                const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                     (game.genre && game.genre.toLowerCase().includes(searchQuery.toLowerCase()));
+
+                if (!matchesSearch) return false;
+
+                if (activeCategory === 'favorites') return favorites.has(game.id);
+                if (activeCategory === 'built-in') return game.isBuiltIn;
+                if (activeCategory === 'custom') return !game.isBuiltIn;
+                if (activeCategory === 'recent') return stats.lastPlayed && stats.lastPlayed[game.id];
+
+                return true;
+            });
+
+            // Сортировка для "Недавние"
+            if (activeCategory === 'recent') {
+                filtered.sort((a, b) => (stats.lastPlayed[b.id] || 0) - (stats.lastPlayed[a.id] || 0));
+            }
+
+            document.getElementById('games-count').innerText = `Показано: ${filtered.length}`;
+            document.getElementById('count-all').innerText = gamesList.length;
+            document.getElementById('count-favorites').innerText = favorites.size;
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            // Создание карточек игр
+            filtered.forEach(game => {
+                const isFav = favorites.has(game.id);
+                const launchCount = (stats.launches && stats.launches[game.id]) || 0;
+
+                const card = document.createElement('div');
+                card.className = `game-card bg-dark-card border border-dark-border rounded-2xl overflow-hidden flex flex-col justify-between relative group`;
+                
+                card.innerHTML = `
+                    <div>
+                        <!-- Верхняя плашка/Обложка -->
+                        <div class="h-36 bg-gradient-to-tr ${game.gradient || 'from-indigo-600 to-slate-800'} p-4 flex flex-col justify-between relative overflow-hidden">
+                            <div class="flex justify-between items-center z-10">
+                                <span class="bg-black/40 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-lg font-medium border border-white/10">
+                                    ${game.genre || 'HTML5'}
+                                </span>
+                                <button onclick="toggleFavorite('${game.id}', event)" class="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:text-rose-500 transition">
+                                    <i class="${isFav ? 'fa-solid text-rose-500' : 'fa-regular'} fa-heart"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="z-10 flex items-end justify-between">
+                                <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl text-white shadow-lg">
+                                    <i class="${game.icon || 'fa-solid fa-code'}"></i>
+                                </div>
+                                ${!game.isBuiltIn ? `
+                                    <button onclick="deleteGame('${game.id}', event)" class="opacity-0 group-hover:opacity-100 transition text-xs bg-rose-600/80 hover:bg-rose-600 text-white px-2 py-1 rounded-md">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+
+                            <!-- Декоративный логотип фон -->
+                            <i class="${game.icon || 'fa-solid fa-gamepad'} absolute -right-4 -bottom-4 text-8xl text-white/10 pointer-events-none"></i>
+                        </div>
+
+                        <!-- Описание и детали -->
+                        <div class="p-5">
+                            <h4 class="font-bold text-white text-lg mb-1 group-hover:text-brand-400 transition">${game.title}</h4>
+                            <p class="text-slate-400 text-xs line-clamp-2 mb-4 leading-relaxed">${game.desc || 'Без описания'}</p>
+                        </div>
+                    </div>
+
+                    <!-- Кнопка запуска и инфо -->
+                    <div class="px-5 pb-5 pt-0 flex items-center justify-between border-t border-dark-border/50 pt-3 mt-auto">
+                        <span class="text-xs text-slate-500 flex items-center space-x-1">
+                            <i class="fa-solid fa-play text-[10px]"></i>
+                            <span>Запусков: ${launchCount}</span>
+                        </span>
+                        <button onclick="launchGame('${game.id}')" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center space-x-1.5 shadow-md shadow-brand-600/20">
+                            <i class="fa-solid fa-play"></i>
+                            <span>Играть</span>
+                        </button>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Навигация и категориальная фильтрация
+        function filterCategory(cat) {
+            activeCategory = cat;
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('bg-dark-hover', 'text-white'));
+            
+            const activeNav = document.getElementById(`nav-${cat}`);
+            if(activeNav) activeNav.classList.add('bg-dark-hover', 'text-white');
+
+            const titles = {
+                'all': 'Все игры',
+                'favorites': 'Избранные игры',
+                'recent': 'Недавно запущенные',
+                'built-in': 'Встроенные ретро-игры',
+                'custom': 'Мои пользовательские игры'
+            };
+            document.getElementById('section-title').innerText = titles[cat] || 'Библиотека';
+
+            renderGames();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('searchInput').value;
+            renderGames();
+        }
+
+        function toggleFavorite(id, event) {
+            event.stopPropagation();
+            if(favorites.has(id)) {
+                favorites.delete(id);
+                showToast('Удалено из избранного', 'info');
+            } else {
+                favorites.add(id);
+                showToast('Добавлено в избранное!', 'success');
+            }
+            saveFavoritesToStorage();
+            renderGames();
+        }
+
+        // ==========================================
+        // 4. ЗАПУСК И УПРАВЛЕНИЕ ИГРОВЫМ ПЛЕЕРОМ
+        // ==========================================
+
+        function launchGame(id) {
+            const game = gamesList.find(g => g.id === id);
+            if(!game) return;
+
+            currentPlayingGameId = id;
+
+            // Обновление статистики
+            stats.totalLaunches = (stats.totalLaunches || 0) + 1;
+            stats.launches = stats.launches || {};
+            stats.launches[id] = (stats.launches[id] || 0) + 1;
+            stats.lastPlayed = stats.lastPlayed || {};
+            stats.lastPlayed[id] = Date.now();
+            saveStatsToStorage();
+            updateStatsUI();
+
+            // Заполнение шапки плеера
+            document.getElementById('player-game-title').innerText = game.title;
+            document.getElementById('player-game-type').innerText = game.isBuiltIn ? 'Встроенная HTML5 Игра' : 'Пользовательский HTML';
+            
+            const container = document.getElementById('game-container');
+            container.innerHTML = '';
+
+            const iframe = document.createElement('iframe');
+            iframe.className = 'w-full h-full border-0 bg-black';
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+            iframe.sandbox = 'allow-scripts allow-same-origin allow-modals allow-forms';
+
+            container.appendChild(iframe);
+
+            // Загрузка кода игры в iframe
+            if(game.url) {
+                iframe.src = game.url;
+            } else {
+                const doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write(game.code);
+                doc.close();
+            }
+
+            // Открытие модального окна
+            document.getElementById('player-modal').classList.remove('hidden');
+            renderGames(); // обновляем кол-во запусков на карточке
+        }
+
+        function closePlayerModal() {
+            const modal = document.getElementById('player-modal');
+            modal.classList.add('hidden');
+            document.getElementById('game-container').innerHTML = ''; // Очистка iframe для остановки звука/скриптов
+            currentPlayingGameId = null;
+        }
+
+        function restartCurrentGame() {
+            if(currentPlayingGameId) {
+                launchGame(currentPlayingGameId);
+            }
+        }
+
+        function toggleFullscreen() {
+            const container = document.getElementById('game-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    showToast('Ошибка включения полноэкранного режима', 'error');
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function updateStatsUI() {
+            document.getElementById('total-launches').innerText = stats.totalLaunches || 0;
+        }
+
+        // ==========================================
+        // 5. ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЬСКИХ ИГР
+        // ==========================================
+
+        function openAddModal() {
+            document.getElementById('add-modal').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+            document.getElementById('add-game-form').reset();
+        }
+
+        function switchAddTab(tab) {
+            currentAddTab = tab;
+            ['file', 'code', 'url'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}-btn`);
+                const field = document.getElementById(`add-type-${t}`);
+                if(t === tab) {
+                    btn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white transition';
+                    field.classList.remove('hidden');
+                } else {
+                    btn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
+                    field.classList.add('hidden');
+                }
+            });
+        }
+
+        function handleSaveGame(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('add-title').value.trim();
+            const genre = document.getElementById('add-genre').value.trim() || 'Пользовательская';
+            const color = document.getElementById('add-color').value;
+            const desc = document.getElementById('add-desc').value.trim();
+
+            const newGame = {
+                id: 'custom-' + Date.now(),
+                title: title,
+                genre: genre,
+                desc: desc,
+                gradient: color,
+                icon: 'fa-solid fa-code',
+                isBuiltIn: false
+            };
+
+            if(currentAddTab === 'url') {
+                const url = document.getElementById('add-url').value.trim();
+                if(!url) return alert('Введите URL ссылку');
+                newGame.url = url;
+                finalizeGameAdd(newGame);
+            } else if(currentAddTab === 'code') {
+                const code = document.getElementById('add-code').value.trim();
+                if(!code) return alert('Введите HTML код');
+                newGame.code = code;
+                finalizeGameAdd(newGame);
+            } else if(currentAddTab === 'file') {
+                const fileInput = document.getElementById('add-file');
+                if(!fileInput.files.length) return alert('Выберите HTML файл');
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    newGame.code = evt.target.result;
+                    finalizeGameAdd(newGame);
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function finalizeGameAdd(game) {
+            gamesList.push(game);
+            saveCustomGamesToStorage();
+            closeAddModal();
+            renderGames();
+            showToast(`Игра "${game.title}" добавлена!`, 'success');
+        }
+
+        function deleteGame(id, event) {
+            event.stopPropagation();
+            if(confirm('Вы уверены, что хотите удалить эту игру из библиотеки?')) {
+                gamesList = gamesList.filter(g => g.id !== id);
+                favorites.delete(id);
+                saveCustomGamesToStorage();
+                saveFavoritesToStorage();
+                renderGames();
+                showToast('Игра удалена', 'info');
+            }
+        }
+
+        // ==========================================
+        // 6. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (TOASTS)
+        // ==========================================
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = msg;
+            
+            if(type === 'error') {
+                toastIcon.className = 'fa-solid fa-circle-xmark text-rose-500 text-lg';
+                toast.style.borderColor = '#f43f5e';
+            } else if(type === 'info') {
+                toastIcon.className = 'fa-solid fa-circle-info text-amber-500 text-lg';
+                toast.style.borderColor = '#f59e0b';
+            } else {
+                toastIcon.className = 'fa-solid fa-circle-check text-brand-500 text-lg';
+                toast.style.borderColor = '#6366f1';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
